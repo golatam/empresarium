@@ -27,7 +27,7 @@ src/lib/validations/       # Zod schemas (auth, order, profile)
 src/types/                 # database.ts, order.ts, country.ts
 messages/{en,es,pt,ru}.json
 src/lib/email.ts           # Resend email client + localized templates
-supabase/migrations/       # 14 SQL migrations
+supabase/migrations/       # 15 SQL migrations
 supabase/seed.sql          # 5 countries, 17 entity types, form fields
 ```
 
@@ -38,6 +38,8 @@ supabase/seed.sql          # 5 countries, 17 entity types, form fields
 - **Server Components for reads, Server Actions for mutations** — minimal client JS
 - **`as any` casts avoided** — removed by using untyped clients instead
 - **Resend for auth emails** — `admin.auth.admin.generateLink()` creates auth tokens, emails sent via Resend API (`src/lib/email.ts`). Bypasses Supabase 1 email/60s rate limit. Sender domain: `golatam.digital`
+- **RLS admin checks via `is_admin(auth.uid())`** — all admin RLS policies use a `SECURITY DEFINER` function instead of direct `SELECT FROM profiles` to avoid infinite recursion (see migration 00015)
+- **Password reset uses admin API** — `updatePasswordWithToken()` server action verifies recovery token via `admin.auth.getUser(token)`, updates password via `admin.auth.admin.updateUserById()`, then auto-signs in user
 
 ## Database
 14 tables: profiles, countries, entity_types, country_form_fields, orders, founders, order_status_history, conversations, messages, documents, required_documents, addons, partner_countries
