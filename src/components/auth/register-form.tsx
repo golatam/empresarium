@@ -9,9 +9,9 @@ import { Loader2, ArrowLeft } from 'lucide-react';
 
 import {
   registerSchema,
-  verifyOtpSchema,
+  verifyCodeSchema,
   type RegisterFormData,
-  type VerifyOtpFormData,
+  type VerifyCodeFormData,
 } from '@/lib/validations/auth';
 import { sendOtp, verifyOtpAndSignUp } from '@/lib/actions/auth';
 import { Button } from '@/components/ui/button';
@@ -59,9 +59,9 @@ export function RegisterForm() {
     },
   });
 
-  const codeForm = useForm<VerifyOtpFormData>({
-    resolver: zodResolver(verifyOtpSchema),
-    defaultValues: { email: '', code: '' },
+  const codeForm = useForm<VerifyCodeFormData>({
+    resolver: zodResolver(verifyCodeSchema),
+    defaultValues: { code: '' },
   });
 
   const handleSendOtp = useCallback(async (targetEmail: string) => {
@@ -94,12 +94,11 @@ export function RegisterForm() {
     const success = await handleSendOtp(data.email);
     if (success) {
       setRegistrationData(data);
-      codeForm.setValue('email', data.email);
       setStep('code');
     }
   }
 
-  async function onCodeSubmit(data: VerifyOtpFormData) {
+  async function onCodeSubmit(data: VerifyCodeFormData) {
     if (!registrationData) return;
 
     setIsLoading(true);

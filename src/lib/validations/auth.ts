@@ -9,6 +9,11 @@ export const verifyOtpSchema = z.object({
   code: z.string().length(6, 'Code must be 6 digits').regex(/^\d{6}$/, 'Code must be 6 digits'),
 });
 
+// Code-only schema for the OTP input step (email comes from React state, not form)
+export const verifyCodeSchema = z.object({
+  code: z.string().length(6, 'Code must be 6 digits').regex(/^\d{6}$/, 'Code must be 6 digits'),
+});
+
 export const registerSchema = z.object({
   email: z.string().email('Invalid email address'),
   fullName: z.string().min(1, 'Full name is required'),
@@ -17,4 +22,5 @@ export const registerSchema = z.object({
 
 export type SendOtpFormData = z.infer<typeof sendOtpSchema>;
 export type VerifyOtpFormData = z.infer<typeof verifyOtpSchema>;
+export type VerifyCodeFormData = z.infer<typeof verifyCodeSchema>;
 export type RegisterFormData = z.infer<typeof registerSchema>;

@@ -10,9 +10,9 @@ import { Loader2, ArrowLeft } from 'lucide-react';
 
 import {
   sendOtpSchema,
-  verifyOtpSchema,
+  verifyCodeSchema,
   type SendOtpFormData,
-  type VerifyOtpFormData,
+  type VerifyCodeFormData,
 } from '@/lib/validations/auth';
 import { sendOtp, verifyOtpAndSignIn } from '@/lib/actions/auth';
 import { Button } from '@/components/ui/button';
@@ -58,9 +58,9 @@ export function LoginForm() {
     defaultValues: { email: '' },
   });
 
-  const codeForm = useForm<VerifyOtpFormData>({
-    resolver: zodResolver(verifyOtpSchema),
-    defaultValues: { email: '', code: '' },
+  const codeForm = useForm<VerifyCodeFormData>({
+    resolver: zodResolver(verifyCodeSchema),
+    defaultValues: { code: '' },
   });
 
   const handleSendOtp = useCallback(async (targetEmail: string) => {
@@ -93,17 +93,16 @@ export function LoginForm() {
     const success = await handleSendOtp(data.email);
     if (success) {
       setEmail(data.email);
-      codeForm.setValue('email', data.email);
       setStep('code');
     }
   }
 
-  async function onCodeSubmit(data: VerifyOtpFormData) {
+  async function onCodeSubmit(data: VerifyCodeFormData) {
     setIsLoading(true);
     setError(null);
 
     try {
-      const result = await verifyOtpAndSignIn(data.email, data.code);
+      const result = await verifyOtpAndSignIn(email, data.code);
 
       if (result.error) {
         if (result.error === 'INVALID_CODE') {
