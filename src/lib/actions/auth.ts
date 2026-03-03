@@ -5,6 +5,12 @@ import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { sendConfirmationEmail, sendPasswordResetEmail } from '@/lib/email';
 
+// Build verification link ourselves instead of using action_link from generateLink().
+// action_link uses Supabase's Site URL setting as redirect base, which may be localhost.
+function buildVerifyLink(hashedToken: string, type: string, redirectTo: string): string {
+  return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/verify?token=${hashedToken}&type=${type}&redirect_to=${encodeURIComponent(redirectTo)}`;
+}
+
 export async function signIn(formData: { email: string; password: string }) {
   const supabase = await createClient();
 
@@ -58,10 +64,12 @@ export async function signUp(formData: {
   }
 
   // Send confirmation email via Resend
-  const actionLink = data.properties?.action_link;
-  if (actionLink) {
+  const token = data.properties?.hashed_token;
+  if (token) {
+    const redirectTo = `${process.env.NEXT_PUBLIC_APP_URL}/${locale}/auth/callback`;
+    const verifyLink = buildVerifyLink(token, 'signup', redirectTo);
     try {
-      await sendConfirmationEmail(formData.email, actionLink, locale);
+      await sendConfirmationEmail(formData.email, verifyLink, locale);
     } catch {
       console.error('[Auth] Failed to send confirmation email, but user was created');
     }
@@ -94,10 +102,12 @@ export async function resetPassword(email: string, locale: string = 'en') {
     return { error: error.message };
   }
 
-  const actionLink = data.properties?.action_link;
-  if (actionLink) {
+  const token = data.properties?.hashed_token;
+  if (token) {
+    const redirectTo = `${process.env.NEXT_PUBLIC_APP_URL}/${locale}/auth/callback?type=recovery`;
+    const verifyLink = buildVerifyLink(token, 'recovery', redirectTo);
     try {
-      await sendPasswordResetEmail(email, actionLink, locale);
+      await sendPasswordResetEmail(email, verifyLink, locale);
     } catch {
       return { error: 'Failed to send email' };
     }
