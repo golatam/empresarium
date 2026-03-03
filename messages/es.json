@@ -112,7 +112,13 @@
     "resetEmailSent": "Enlace de Restablecimiento Enviado",
     "resetEmailSentDescription": "Hemos enviado un enlace de restablecimiento a tu correo.",
     "errorRateLimit": "Demasiadas solicitudes. Espera un minuto antes de intentarlo de nuevo.",
-    "errorGeneric": "Algo salio mal. Por favor intenta de nuevo."
+    "errorGeneric": "Algo salio mal. Por favor intenta de nuevo.",
+    "setNewPassword": "Establecer Nueva Contrasena",
+    "setNewPasswordDescription": "Ingresa tu nueva contrasena a continuacion.",
+    "newPassword": "Nueva Contrasena",
+    "passwordUpdated": "Contrasena Actualizada",
+    "passwordUpdatedDescription": "Tu contrasena ha sido actualizada. Redirigiendo al panel...",
+    "sessionLoading": "Verificando enlace de recuperacion..."
   },
   "dashboard": {
     "welcome": "Bienvenido, {name}",

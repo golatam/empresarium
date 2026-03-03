@@ -112,7 +112,13 @@
     "resetEmailSent": "Reset Link Sent",
     "resetEmailSentDescription": "We've sent a password reset link to your email.",
     "errorRateLimit": "Too many requests. Please wait a minute before trying again.",
-    "errorGeneric": "Something went wrong. Please try again."
+    "errorGeneric": "Something went wrong. Please try again.",
+    "setNewPassword": "Set New Password",
+    "setNewPasswordDescription": "Enter your new password below.",
+    "newPassword": "New Password",
+    "passwordUpdated": "Password Updated",
+    "passwordUpdatedDescription": "Your password has been updated. Redirecting to dashboard...",
+    "sessionLoading": "Verifying recovery link..."
   },
   "dashboard": {
     "welcome": "Welcome, {name}",

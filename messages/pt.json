@@ -112,7 +112,13 @@
     "resetEmailSent": "Link de Redefinicao Enviado",
     "resetEmailSentDescription": "Enviamos um link de redefinicao de senha para seu e-mail.",
     "errorRateLimit": "Muitas solicitações. Aguarde um minuto antes de tentar novamente.",
-    "errorGeneric": "Algo deu errado. Tente novamente."
+    "errorGeneric": "Algo deu errado. Tente novamente.",
+    "setNewPassword": "Definir Nova Senha",
+    "setNewPasswordDescription": "Digite sua nova senha abaixo.",
+    "newPassword": "Nova Senha",
+    "passwordUpdated": "Senha Atualizada",
+    "passwordUpdatedDescription": "Sua senha foi atualizada. Redirecionando para o painel...",
+    "sessionLoading": "Verificando link de recuperacao..."
   },
   "dashboard": {
     "welcome": "Bem-vindo, {name}",

@@ -112,7 +112,13 @@
     "resetEmailSent": "Ссылка для сброса отправлена",
     "resetEmailSentDescription": "Мы отправили ссылку для сброса пароля на вашу почту.",
     "errorRateLimit": "Слишком много запросов. Подождите минуту и попробуйте снова.",
-    "errorGeneric": "Что-то пошло не так. Попробуйте снова."
+    "errorGeneric": "Что-то пошло не так. Попробуйте снова.",
+    "setNewPassword": "Установить новый пароль",
+    "setNewPasswordDescription": "Введите новый пароль ниже.",
+    "newPassword": "Новый пароль",
+    "passwordUpdated": "Пароль обновлён",
+    "passwordUpdatedDescription": "Ваш пароль обновлён. Перенаправление в панель управления...",
+    "sessionLoading": "Проверка ссылки для восстановления..."
   },
   "dashboard": {
     "welcome": "Добро пожаловать, {name}",
