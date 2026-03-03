@@ -25,11 +25,5 @@ CREATE POLICY "Admins can view all profiles" ON profiles FOR SELECT USING (
 CREATE POLICY "Admins can update all profiles" ON profiles FOR UPDATE USING (
   EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
 );
--- Partners can view client profiles for their assigned orders
-CREATE POLICY "Partners can view assigned clients" ON profiles FOR SELECT USING (
-  EXISTS (
-    SELECT 1 FROM orders o
-    WHERE o.partner_id = auth.uid()
-    AND o.client_id = profiles.id
-  )
-);
+-- NOTE: "Partners can view assigned clients" policy moved to 00006b migration
+-- because it depends on the orders table which is created later.

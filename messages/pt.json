@@ -111,6 +111,7 @@
     "checkEmailDescription": "Enviamos um link de confirmacao. Verifique sua caixa de entrada.",
     "resetEmailSent": "Link de Redefinicao Enviado",
     "resetEmailSentDescription": "Enviamos um link de redefinicao de senha para seu e-mail.",
+    "errorRateLimit": "Muitas solicitações. Aguarde um minuto antes de tentar novamente.",
     "errorGeneric": "Algo deu errado. Tente novamente."
   },
   "dashboard": {

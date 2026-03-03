@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslations, useLocale } from 'next-intl';
@@ -37,6 +37,15 @@ export function ForgotPasswordForm() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
+
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const timer = setTimeout(() => setCooldown(cooldown - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [cooldown]);
+
+  const startCooldown = useCallback(() => setCooldown(60), []);
 
   const form = useForm<ForgotPasswordFormData>({
     resolver: zodResolver(forgotPasswordSchema),
@@ -50,13 +59,19 @@ export function ForgotPasswordForm() {
     setError(null);
 
     try {
-      const result = await resetPassword(data.email);
+      const result = await resetPassword(data.email, locale);
 
       if (result.error) {
-        setError(result.error);
+        if (result.error === 'RATE_LIMIT') {
+          setError(t('errorRateLimit'));
+          startCooldown();
+        } else {
+          setError(result.error);
+        }
         return;
       }
 
+      startCooldown();
       setIsSuccess(true);
     } catch {
       setError(t('errorGeneric'));
@@ -122,9 +137,9 @@ export function ForgotPasswordForm() {
               )}
             />
 
-            <Button type="submit" className="w-full" disabled={isLoading}>
+            <Button type="submit" className="w-full" disabled={isLoading || cooldown > 0}>
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {t('sendResetLink')}
+              {cooldown > 0 ? `${t('sendResetLink')} (${cooldown}s)` : t('sendResetLink')}
             </Button>
           </form>
         </Form>

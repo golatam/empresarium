@@ -111,6 +111,7 @@
     "checkEmailDescription": "Te hemos enviado un enlace de confirmacion. Revisa tu bandeja de entrada.",
     "resetEmailSent": "Enlace de Restablecimiento Enviado",
     "resetEmailSentDescription": "Hemos enviado un enlace de restablecimiento a tu correo.",
+    "errorRateLimit": "Demasiadas solicitudes. Espera un minuto antes de intentarlo de nuevo.",
     "errorGeneric": "Algo salio mal. Por favor intenta de nuevo."
   },
   "dashboard": {

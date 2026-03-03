@@ -26,7 +26,8 @@ src/lib/hooks/             # Realtime hooks (messages, order status)
 src/lib/validations/       # Zod schemas (auth, order, profile)
 src/types/                 # database.ts, order.ts, country.ts
 messages/{en,es,pt,ru}.json
-supabase/migrations/       # 13 SQL migrations
+src/lib/email.ts           # Resend email client + localized templates
+supabase/migrations/       # 14 SQL migrations
 supabase/seed.sql          # 5 countries, 17 entity types, form fields
 ```
 
@@ -36,6 +37,7 @@ supabase/seed.sql          # 5 countries, 17 entity types, form fields
 - **JSONB for country-specific data** — `orders.form_data`, `founders.extra_data`
 - **Server Components for reads, Server Actions for mutations** — minimal client JS
 - **`as any` casts avoided** — removed by using untyped clients instead
+- **Resend for auth emails** — `admin.auth.admin.generateLink()` creates auth tokens, emails sent via Resend API (`src/lib/email.ts`). Bypasses Supabase 1 email/60s rate limit. Sender domain: `golatam.digital`
 
 ## Database
 14 tables: profiles, countries, entity_types, country_form_fields, orders, founders, order_status_history, conversations, messages, documents, required_documents, addons, partner_countries
@@ -46,6 +48,7 @@ supabase/seed.sql          # 5 countries, 17 entity types, form fields
 | Component | Status |
 |-----------|--------|
 | Auth (login/register/forgot) | Done |
+| Email via Resend (signup confirm + password reset) | Done |
 | Order wizard (7 steps) | Done |
 | Order management + status pipeline | Done |
 | Messaging (realtime) | Done |

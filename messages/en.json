@@ -111,6 +111,7 @@
     "checkEmailDescription": "We've sent you a confirmation link. Please check your inbox.",
     "resetEmailSent": "Reset Link Sent",
     "resetEmailSentDescription": "We've sent a password reset link to your email.",
+    "errorRateLimit": "Too many requests. Please wait a minute before trying again.",
     "errorGeneric": "Something went wrong. Please try again."
   },
   "dashboard": {
