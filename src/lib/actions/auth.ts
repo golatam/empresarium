@@ -14,9 +14,16 @@ function buildVerifyLink(hashedToken: string, type: string, redirectTo: string):
 export async function signIn(formData: { email: string; password: string }) {
   const supabase = await createClient();
 
-  const { error } = await supabase.auth.signInWithPassword({
+  const { data, error } = await supabase.auth.signInWithPassword({
     email: formData.email,
     password: formData.password,
+  });
+
+  console.log('[signIn] result:', {
+    hasSession: !!data?.session,
+    hasUser: !!data?.user,
+    userId: data?.user?.id,
+    error: error?.message,
   });
 
   if (error) {
