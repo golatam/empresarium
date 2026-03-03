@@ -167,13 +167,14 @@ export function RegisterForm() {
                     <FormLabel>{t('verifyCode')}</FormLabel>
                     <FormControl>
                       <Input
+                        {...field}
                         placeholder={t('codePlaceholder')}
                         autoComplete="one-time-code"
                         inputMode="numeric"
                         maxLength={6}
                         disabled={isLoading}
                         className="text-center text-lg tracking-widest"
-                        {...field}
+                        autoFocus
                       />
                     </FormControl>
                     <FormMessage />
@@ -257,10 +258,10 @@ export function RegisterForm() {
                   <FormLabel>{t('fullName')}</FormLabel>
                   <FormControl>
                     <Input
+                      {...field}
                       placeholder={t('fullNamePlaceholder')}
                       autoComplete="name"
                       disabled={isLoading}
-                      {...field}
                     />
                   </FormControl>
                   <FormMessage />
@@ -276,11 +277,11 @@ export function RegisterForm() {
                   <FormLabel>{t('email')}</FormLabel>
                   <FormControl>
                     <Input
+                      {...field}
                       type="email"
                       placeholder={t('emailPlaceholder')}
                       autoComplete="email"
                       disabled={isLoading}
-                      {...field}
                     />
                   </FormControl>
                   <FormMessage />

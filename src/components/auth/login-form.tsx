@@ -157,13 +157,14 @@ export function LoginForm() {
                     <FormLabel>{t('verifyCode')}</FormLabel>
                     <FormControl>
                       <Input
+                        {...field}
                         placeholder={t('codePlaceholder')}
                         autoComplete="one-time-code"
                         inputMode="numeric"
                         maxLength={6}
                         disabled={isLoading}
                         className="text-center text-lg tracking-widest"
-                        {...field}
+                        autoFocus
                       />
                     </FormControl>
                     <FormMessage />
@@ -224,11 +225,11 @@ export function LoginForm() {
                   <FormLabel>{t('email')}</FormLabel>
                   <FormControl>
                     <Input
+                      {...field}
                       type="email"
                       placeholder={t('emailPlaceholder')}
                       autoComplete="email"
                       disabled={isLoading}
-                      {...field}
                     />
                   </FormControl>
                   <FormMessage />
