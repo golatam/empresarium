@@ -135,7 +135,7 @@ export function LoginForm() {
 
   if (step === 'code') {
     return (
-      <Card>
+      <Card key="code">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl">{t('enterCode')}</CardTitle>
           <CardDescription>{t('enterCodeDescription', { email })}</CardDescription>
@@ -203,7 +203,7 @@ export function LoginForm() {
   }
 
   return (
-    <Card>
+    <Card key="email">
       <CardHeader className="text-center">
         <CardTitle className="text-2xl">{t('loginTitle')}</CardTitle>
         <CardDescription>{t('loginDescription')}</CardDescription>

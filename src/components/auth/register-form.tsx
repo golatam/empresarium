@@ -145,7 +145,7 @@ export function RegisterForm() {
 
   if (step === 'code' && registrationData) {
     return (
-      <Card>
+      <Card key="code">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl">{t('enterCode')}</CardTitle>
           <CardDescription>{t('enterCodeDescription', { email: registrationData.email })}</CardDescription>
@@ -213,7 +213,7 @@ export function RegisterForm() {
   }
 
   return (
-    <Card>
+    <Card key="details">
       <CardHeader className="text-center">
         <CardTitle className="text-2xl">{t('registerTitle')}</CardTitle>
         <CardDescription>{t('registerDescription')}</CardDescription>
