@@ -5,7 +5,7 @@ import { updateSession } from './lib/supabase/middleware';
 
 const intlMiddleware = createMiddleware(routing);
 
-const publicPages = ['/', '/login', '/register', '/forgot-password', '/auth/callback'];
+const publicPages = ['/', '/login', '/register', '/forgot-password', '/reset-password', '/auth/callback'];
 
 export default async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
