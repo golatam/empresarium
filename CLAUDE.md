@@ -15,7 +15,7 @@ Clients create orders, legal partners process them. Includes messaging, document
 ## Project Structure
 ```
 src/app/[locale]/          # Locale-based routing
-  (auth)/                  # Login, register, forgot-password
+  (auth)/                  # Login, register, forgot-password, reset-password
   (dashboard)/             # Protected: dashboard, orders, messages, profile, admin
   auth/callback/           # Supabase auth callback
 src/components/            # UI (shadcn), layout, auth, orders, messages, documents, admin, shared
@@ -47,7 +47,7 @@ supabase/seed.sql          # 5 countries, 17 entity types, form fields
 ## Status
 | Component | Status |
 |-----------|--------|
-| Auth (login/register/forgot) | Done |
+| Auth (login/register/forgot/reset-password) | Done |
 | Email via Resend (signup confirm + password reset) | Done |
 | Order wizard (7 steps) | Done |
 | Order management + status pipeline | Done |
