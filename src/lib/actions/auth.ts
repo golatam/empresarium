@@ -84,6 +84,37 @@ export async function signOut() {
   redirect('/');
 }
 
+export async function updatePasswordWithToken(accessToken: string, newPassword: string) {
+  const admin = createAdminClient();
+
+  // Verify the recovery access token and get the user
+  const { data: { user }, error: verifyError } = await admin.auth.getUser(accessToken);
+  if (verifyError || !user) {
+    return { error: 'Invalid or expired recovery link' };
+  }
+
+  // Update password via admin API (bypasses client-side session issues)
+  const { error: updateError } = await admin.auth.admin.updateUserById(user.id, {
+    password: newPassword,
+  });
+  if (updateError) {
+    return { error: updateError.message };
+  }
+
+  // Sign in with new password to establish session cookies
+  const supabase = await createClient();
+  const { error: signInError } = await supabase.auth.signInWithPassword({
+    email: user.email!,
+    password: newPassword,
+  });
+  if (signInError) {
+    // Password was updated but auto-login failed — user can log in manually
+    return { success: true, autoLogin: false };
+  }
+
+  return { success: true, autoLogin: true };
+}
+
 export async function resetPassword(email: string, locale: string = 'en') {
   const admin = createAdminClient();
 

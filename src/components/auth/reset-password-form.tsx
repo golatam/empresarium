@@ -11,7 +11,7 @@ import {
   resetPasswordSchema,
   type ResetPasswordFormData,
 } from '@/lib/validations/auth';
-import { createClient } from '@/lib/supabase/client';
+import { updatePasswordWithToken } from '@/lib/actions/auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -38,55 +38,21 @@ export function ResetPasswordForm() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
-  const [sessionReady, setSessionReady] = useState(false);
+  const [accessToken, setAccessToken] = useState<string | null>(null);
 
-  const supabase = createClient();
-
-  // Listen for the recovery session from the URL fragment
+  // Extract access_token from URL hash fragment on mount
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event) => {
-        if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') {
-          setSessionReady(true);
-        }
-      }
-    );
-
-    async function initSession() {
-      // Manually detect recovery session from URL hash fragment.
-      // createBrowserClient (@supabase/ssr) may use PKCE flow which
-      // ignores implicit grant #access_token fragments.
-      const hash = window.location.hash;
-      if (hash) {
-        const params = new URLSearchParams(hash.substring(1));
-        const accessToken = params.get('access_token');
-        const refreshToken = params.get('refresh_token');
-
-        if (accessToken && refreshToken) {
-          const { error } = await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: refreshToken,
-          });
-          if (!error) {
-            setSessionReady(true);
-            // Clean tokens from URL
-            window.history.replaceState(null, '', window.location.pathname);
-          }
-          return;
-        }
-      }
-
-      // Fallback: check existing session (e.g. PKCE flow where callback already exchanged the code)
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        setSessionReady(true);
+    const hash = window.location.hash;
+    if (hash) {
+      const params = new URLSearchParams(hash.substring(1));
+      const token = params.get('access_token');
+      if (token) {
+        setAccessToken(token);
+        // Clean tokens from URL
+        window.history.replaceState(null, '', window.location.pathname);
       }
     }
-
-    initSession();
-
-    return () => subscription.unsubscribe();
-  }, [supabase]);
+  }, []);
 
   const form = useForm<ResetPasswordFormData>({
     resolver: zodResolver(resetPasswordSchema),
@@ -97,26 +63,36 @@ export function ResetPasswordForm() {
   });
 
   async function onSubmit(data: ResetPasswordFormData) {
+    if (!accessToken) return;
+
     setIsLoading(true);
     setError(null);
 
-    const { error: updateError } = await supabase.auth.updateUser({
-      password: data.password,
-    });
+    try {
+      const result = await updatePasswordWithToken(accessToken, data.password);
 
-    if (updateError) {
-      setError(updateError.message);
+      if (result.error) {
+        setError(result.error);
+        setIsLoading(false);
+        return;
+      }
+
+      setIsSuccess(true);
       setIsLoading(false);
-      return;
+
+      // If auto-login succeeded, redirect to dashboard; otherwise to login
+      setTimeout(() => {
+        if (result.autoLogin) {
+          router.push(`/${locale}/dashboard`);
+          router.refresh();
+        } else {
+          router.push(`/${locale}/login`);
+        }
+      }, 2000);
+    } catch {
+      setError(t('errorGeneric'));
+      setIsLoading(false);
     }
-
-    setIsSuccess(true);
-    setIsLoading(false);
-
-    // Redirect to dashboard after short delay
-    setTimeout(() => {
-      router.push(`/${locale}/dashboard`);
-    }, 2000);
   }
 
   if (isSuccess) {
@@ -146,7 +122,7 @@ export function ResetPasswordForm() {
           </Alert>
         )}
 
-        {!sessionReady && (
+        {!accessToken && (
           <Alert className="mb-4">
             <AlertDescription>{t('sessionLoading')}</AlertDescription>
           </Alert>
@@ -164,7 +140,7 @@ export function ResetPasswordForm() {
                     <Input
                       type="password"
                       placeholder={t('passwordPlaceholder')}
-                      disabled={isLoading || !sessionReady}
+                      disabled={isLoading || !accessToken}
                       {...field}
                     />
                   </FormControl>
@@ -183,7 +159,7 @@ export function ResetPasswordForm() {
                     <Input
                       type="password"
                       placeholder={t('confirmPasswordPlaceholder')}
-                      disabled={isLoading || !sessionReady}
+                      disabled={isLoading || !accessToken}
                       {...field}
                     />
                   </FormControl>
@@ -195,7 +171,7 @@ export function ResetPasswordForm() {
             <Button
               type="submit"
               className="w-full"
-              disabled={isLoading || !sessionReady}
+              disabled={isLoading || !accessToken}
             >
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {t('resetPassword')}
