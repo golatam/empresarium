@@ -61,6 +61,7 @@ supabase/seed.sql          # 5 countries, 17 entity types, form fields
 ## Deployment
 - **GitHub**: https://github.com/golatam/empresarium
 - **Railway**: https://empresarium-production.up.railway.app
+- **Auto-deploy**: pushes to `main` → Railway builds and deploys automatically (via Railway GitHub App on `golatam` org)
 - **Supabase env vars** need to be set in Railway Dashboard
 
 ## Commands
@@ -68,5 +69,6 @@ supabase/seed.sql          # 5 countries, 17 entity types, form fields
 npm run dev     # Local dev server
 npm run build   # Production build
 npm run start   # Production server
-railway up      # Deploy to Railway
+git push        # Deploy to Railway (auto-deploy from main)
+railway up      # Manual deploy (fallback)
 ```
