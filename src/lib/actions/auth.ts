@@ -123,11 +123,13 @@ async function createSessionForEmail(email: string) {
   });
 
   if (linkError || !linkData) {
+    console.error('[auth] generateLink failed:', linkError?.message);
     return { error: 'Failed to create session' };
   }
 
   const tokenHash = linkData.properties?.hashed_token;
   if (!tokenHash) {
+    console.error('[auth] generateLink returned no hashed_token:', JSON.stringify(linkData.properties));
     return { error: 'Failed to create session' };
   }
 
@@ -138,6 +140,14 @@ async function createSessionForEmail(email: string) {
   });
 
   if (verifyError) {
+    console.error('[auth] verifyOtp failed:', verifyError.message);
+    return { error: 'Failed to create session' };
+  }
+
+  // Verify the session was actually established (catches silent cookie failures)
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
+  if (userError || !user) {
+    console.error('[auth] Session not established after verifyOtp:', userError?.message);
     return { error: 'Failed to create session' };
   }
 

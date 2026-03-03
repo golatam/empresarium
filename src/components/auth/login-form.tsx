@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslations, useLocale } from 'next-intl';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Loader2, ArrowLeft } from 'lucide-react';
 
@@ -37,7 +37,6 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 export function LoginForm() {
   const t = useTranslations('auth');
   const locale = useLocale();
-  const router = useRouter();
   const searchParams = useSearchParams();
   const [step, setStep] = useState<'email' | 'code'>('email');
   const [email, setEmail] = useState('');
@@ -119,8 +118,10 @@ export function LoginForm() {
         return;
       }
 
-      router.push(redirectTo);
-      router.refresh();
+      // Full page navigation to ensure session cookies are sent with the request.
+      // Using window.location instead of router.push to avoid race conditions
+      // with router.refresh() that can cancel the navigation.
+      window.location.href = redirectTo;
     } catch {
       setError(t('errorGeneric'));
     } finally {

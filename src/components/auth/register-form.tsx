@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslations, useLocale } from 'next-intl';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Loader2, ArrowLeft } from 'lucide-react';
 
@@ -38,7 +37,6 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 export function RegisterForm() {
   const t = useTranslations('auth');
   const locale = useLocale();
-  const router = useRouter();
   const [step, setStep] = useState<'details' | 'code'>('details');
   const [registrationData, setRegistrationData] = useState<RegisterFormData | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -129,8 +127,7 @@ export function RegisterForm() {
         return;
       }
 
-      router.push(`/${locale}/dashboard`);
-      router.refresh();
+      window.location.href = `/${locale}/dashboard`;
     } catch {
       setError(t('errorGeneric'));
     } finally {

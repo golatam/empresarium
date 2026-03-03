@@ -18,9 +18,9 @@ export async function createClient() {
               cookieStore.set(name, value, options)
             );
           } catch (e) {
-            // The `setAll` method was called from a Server Component.
-            // This can be ignored if you have middleware refreshing sessions.
-            console.warn('[supabase/server] setAll failed:', e instanceof Error ? e.message : e);
+            // In Server Components, cookies cannot be set (read-only).
+            // In Server Actions, this should NOT fail — if it does, session cookies won't persist.
+            console.error('[supabase/server] setAll FAILED — cookies not persisted:', e instanceof Error ? e.message : e);
           }
         },
       },
