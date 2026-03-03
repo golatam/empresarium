@@ -46,17 +46,45 @@ export function ResetPasswordForm() {
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event) => {
-        if (event === 'PASSWORD_RECOVERY') {
+        if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') {
           setSessionReady(true);
         }
       }
     );
-    // Also check if we already have a session (e.g. PKCE flow where callback already exchanged the code)
-    supabase.auth.getSession().then(({ data: { session } }) => {
+
+    async function initSession() {
+      // Manually detect recovery session from URL hash fragment.
+      // createBrowserClient (@supabase/ssr) may use PKCE flow which
+      // ignores implicit grant #access_token fragments.
+      const hash = window.location.hash;
+      if (hash) {
+        const params = new URLSearchParams(hash.substring(1));
+        const accessToken = params.get('access_token');
+        const refreshToken = params.get('refresh_token');
+
+        if (accessToken && refreshToken) {
+          const { error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+          if (!error) {
+            setSessionReady(true);
+            // Clean tokens from URL
+            window.history.replaceState(null, '', window.location.pathname);
+          }
+          return;
+        }
+      }
+
+      // Fallback: check existing session (e.g. PKCE flow where callback already exchanged the code)
+      const { data: { session } } = await supabase.auth.getSession();
       if (session) {
         setSessionReady(true);
       }
-    });
+    }
+
+    initSession();
+
     return () => subscription.unsubscribe();
   }, [supabase]);
 
