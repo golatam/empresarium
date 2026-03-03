@@ -1,34 +1,20 @@
 import { z } from 'zod';
 
-export const loginSchema = z.object({
+export const sendOtpSchema = z.object({
   email: z.string().email('Invalid email address'),
-  password: z.string().min(1, 'Password is required'),
+});
+
+export const verifyOtpSchema = z.object({
+  email: z.string().email('Invalid email address'),
+  code: z.string().length(6, 'Code must be 6 digits').regex(/^\d{6}$/, 'Code must be 6 digits'),
 });
 
 export const registerSchema = z.object({
   email: z.string().email('Invalid email address'),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
-  confirmPassword: z.string(),
   fullName: z.string().min(1, 'Full name is required'),
   role: z.enum(['client', 'partner']),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: 'Passwords do not match',
-  path: ['confirmPassword'],
 });
 
-export const forgotPasswordSchema = z.object({
-  email: z.string().email('Invalid email address'),
-});
-
-export const resetPasswordSchema = z.object({
-  password: z.string().min(8, 'Password must be at least 8 characters'),
-  confirmPassword: z.string(),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: 'Passwords do not match',
-  path: ['confirmPassword'],
-});
-
-export type LoginFormData = z.infer<typeof loginSchema>;
+export type SendOtpFormData = z.infer<typeof sendOtpSchema>;
+export type VerifyOtpFormData = z.infer<typeof verifyOtpSchema>;
 export type RegisterFormData = z.infer<typeof registerSchema>;
-export type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>;
-export type ResetPasswordFormData = z.infer<typeof resetPasswordSchema>;

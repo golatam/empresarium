@@ -1,15 +1,20 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslations, useLocale } from 'next-intl';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { Loader2 } from 'lucide-react';
+import { Loader2, ArrowLeft } from 'lucide-react';
 
-import { loginSchema, type LoginFormData } from '@/lib/validations/auth';
-import { signIn } from '@/lib/actions/auth';
+import {
+  sendOtpSchema,
+  verifyOtpSchema,
+  type SendOtpFormData,
+  type VerifyOtpFormData,
+} from '@/lib/validations/auth';
+import { sendOtp, verifyOtpAndSignIn } from '@/lib/actions/auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -34,28 +39,83 @@ export function LoginForm() {
   const locale = useLocale();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [step, setStep] = useState<'email' | 'code'>('email');
+  const [email, setEmail] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
 
   const redirectTo = searchParams.get('redirect') || `/${locale}/dashboard`;
 
-  const form = useForm<LoginFormData>({
-    resolver: zodResolver(loginSchema),
-    defaultValues: {
-      email: '',
-      password: '',
-    },
+  // Cooldown timer for resend
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const timer = setTimeout(() => setCooldown(cooldown - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [cooldown]);
+
+  const emailForm = useForm<SendOtpFormData>({
+    resolver: zodResolver(sendOtpSchema),
+    defaultValues: { email: '' },
   });
 
-  async function onSubmit(data: LoginFormData) {
+  const codeForm = useForm<VerifyOtpFormData>({
+    resolver: zodResolver(verifyOtpSchema),
+    defaultValues: { email: '', code: '' },
+  });
+
+  const handleSendOtp = useCallback(async (targetEmail: string) => {
     setIsLoading(true);
     setError(null);
 
     try {
-      const result = await signIn(data);
+      const result = await sendOtp(targetEmail, locale);
 
       if (result.error) {
-        setError(result.error);
+        if (result.error === 'RATE_LIMIT') {
+          setError(t('errorRateLimit'));
+        } else {
+          setError(result.error);
+        }
+        return false;
+      }
+
+      setCooldown(60);
+      return true;
+    } catch {
+      setError(t('errorGeneric'));
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [locale, t]);
+
+  async function onEmailSubmit(data: SendOtpFormData) {
+    const success = await handleSendOtp(data.email);
+    if (success) {
+      setEmail(data.email);
+      codeForm.setValue('email', data.email);
+      setStep('code');
+    }
+  }
+
+  async function onCodeSubmit(data: VerifyOtpFormData) {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const result = await verifyOtpAndSignIn(data.email, data.code);
+
+      if (result.error) {
+        if (result.error === 'INVALID_CODE') {
+          setError(t('invalidCode'));
+        } else if (result.error === 'CODE_EXPIRED') {
+          setError(t('codeExpired'));
+        } else if (result.error === 'TOO_MANY_ATTEMPTS') {
+          setError(t('tooManyAttempts'));
+        } else {
+          setError(result.error);
+        }
         return;
       }
 
@@ -66,6 +126,79 @@ export function LoginForm() {
     } finally {
       setIsLoading(false);
     }
+  }
+
+  async function handleResend() {
+    if (cooldown > 0) return;
+    await handleSendOtp(email);
+  }
+
+  if (step === 'code') {
+    return (
+      <Card>
+        <CardHeader className="text-center">
+          <CardTitle className="text-2xl">{t('enterCode')}</CardTitle>
+          <CardDescription>{t('enterCodeDescription', { email })}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {error && (
+            <Alert variant="destructive" className="mb-4">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+
+          <Form {...codeForm}>
+            <form onSubmit={codeForm.handleSubmit(onCodeSubmit)} className="space-y-4">
+              <FormField
+                control={codeForm.control}
+                name="code"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('verifyCode')}</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder={t('codePlaceholder')}
+                        autoComplete="one-time-code"
+                        inputMode="numeric"
+                        maxLength={6}
+                        disabled={isLoading}
+                        className="text-center text-lg tracking-widest"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {t('verifyCode')}
+              </Button>
+            </form>
+          </Form>
+
+          <div className="mt-4 flex items-center justify-between text-sm">
+            <button
+              type="button"
+              onClick={() => { setStep('email'); setError(null); }}
+              className="flex items-center text-muted-foreground hover:text-foreground"
+            >
+              <ArrowLeft className="mr-1 h-4 w-4" />
+              {t('changeEmail')}
+            </button>
+            <button
+              type="button"
+              onClick={handleResend}
+              disabled={cooldown > 0 || isLoading}
+              className="text-primary underline-offset-4 hover:underline disabled:opacity-50 disabled:no-underline"
+            >
+              {cooldown > 0 ? `${t('resendCode')} (${cooldown}s)` : t('resendCode')}
+            </button>
+          </div>
+        </CardContent>
+      </Card>
+    );
   }
 
   return (
@@ -81,10 +214,10 @@ export function LoginForm() {
           </Alert>
         )}
 
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <Form {...emailForm}>
+          <form onSubmit={emailForm.handleSubmit(onEmailSubmit)} className="space-y-4">
             <FormField
-              control={form.control}
+              control={emailForm.control}
               name="email"
               render={({ field }) => (
                 <FormItem>
@@ -103,37 +236,9 @@ export function LoginForm() {
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="password"
-              render={({ field }) => (
-                <FormItem>
-                  <div className="flex items-center justify-between">
-                    <FormLabel>{t('password')}</FormLabel>
-                    <Link
-                      href={`/${locale}/forgot-password`}
-                      className="text-sm text-primary underline-offset-4 hover:underline"
-                    >
-                      {t('forgotPassword')}
-                    </Link>
-                  </div>
-                  <FormControl>
-                    <Input
-                      type="password"
-                      placeholder={t('passwordPlaceholder')}
-                      autoComplete="current-password"
-                      disabled={isLoading}
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {t('signIn')}
+              {t('sendCode')}
             </Button>
           </form>
         </Form>

@@ -5,7 +5,7 @@ import { updateSession } from './lib/supabase/middleware';
 
 const intlMiddleware = createMiddleware(routing);
 
-const publicPages = ['/', '/login', '/register', '/forgot-password', '/reset-password', '/auth/callback'];
+const publicPages = ['/', '/login', '/register', '/auth/callback'];
 
 export default async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -31,12 +31,7 @@ export default async function middleware(request: NextRequest) {
   }
 
   // For protected pages, check auth
-  const sbCookies = request.cookies.getAll().filter(c => c.name.includes('sb-'));
-  console.log('[middleware]', pathname, 'sb-cookies:', sbCookies.length, sbCookies.map(c => c.name));
-
   const { user, supabaseResponse } = await updateSession(request);
-
-  console.log('[middleware] user:', user ? user.id : 'null');
 
   if (!user) {
     const locale = pathnameHasLocale ? pathname.split('/')[1] : routing.defaultLocale;

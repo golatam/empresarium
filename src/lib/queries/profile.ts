@@ -25,8 +25,6 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
   const supabase = await createClient();
   const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-  console.log('[getCurrentUser] auth:', { userId: user?.id, authError: authError?.message });
-
   if (authError || !user) return null;
 
   const { data: profile, error: profileError } = await supabase
@@ -34,8 +32,6 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
     .select('*')
     .eq('id', user.id)
     .single();
-
-  console.log('[getCurrentUser] profile:', { hasProfile: !!profile, profileError: profileError?.message });
 
   if (profileError || !profile) return null;
 

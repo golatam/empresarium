@@ -15,7 +15,7 @@ Clients create orders, legal partners process them. Includes messaging, document
 ## Project Structure
 ```
 src/app/[locale]/          # Locale-based routing
-  (auth)/                  # Login, register, forgot-password, reset-password
+  (auth)/                  # Login, register (OTP-based, no passwords)
   (dashboard)/             # Protected: dashboard, orders, messages, profile, admin
   auth/callback/           # Supabase auth callback
 src/components/            # UI (shadcn), layout, auth, orders, messages, documents, admin, shared
@@ -26,8 +26,8 @@ src/lib/hooks/             # Realtime hooks (messages, order status)
 src/lib/validations/       # Zod schemas (auth, order, profile)
 src/types/                 # database.ts, order.ts, country.ts
 messages/{en,es,pt,ru}.json
-src/lib/email.ts           # Resend email client + localized templates
-supabase/migrations/       # 15 SQL migrations
+src/lib/email.ts           # Resend email client (OTP codes)
+supabase/migrations/       # 16 SQL migrations
 supabase/seed.sql          # 5 countries, 17 entity types, form fields
 ```
 
@@ -37,20 +37,19 @@ supabase/seed.sql          # 5 countries, 17 entity types, form fields
 - **JSONB for country-specific data** — `orders.form_data`, `founders.extra_data`
 - **Server Components for reads, Server Actions for mutations** — minimal client JS
 - **`as any` casts avoided** — removed by using untyped clients instead
-- **Resend for auth emails** — `admin.auth.admin.generateLink()` creates auth tokens, emails sent via Resend API (`src/lib/email.ts`). Bypasses Supabase 1 email/60s rate limit. Sender domain: `golatam.digital`
+- **Custom OTP auth (no passwords)** — users sign in/register via 6-digit email codes. Flow: `sendOtp()` → stores hash in `otp_codes` → sends code via Resend → `verifyOtp*()` → verifies hash → `admin.generateLink(magiclink)` + `supabase.auth.verifyOtp(token_hash)` → real Supabase session with cookies. No password storage, no password reset flow.
 - **RLS admin checks via `is_admin(auth.uid())`** — all admin RLS policies use a `SECURITY DEFINER` function instead of direct `SELECT FROM profiles` to avoid infinite recursion (see migration 00015)
-- **Password reset uses admin API** — `updatePasswordWithToken()` server action verifies recovery token via `admin.auth.getUser(token)`, updates password via `admin.auth.admin.updateUserById()`, then auto-signs in user
 
 ## Database
-14 tables: profiles, countries, entity_types, country_form_fields, orders, founders, order_status_history, conversations, messages, documents, required_documents, addons, partner_countries
+15 tables: profiles, countries, entity_types, country_form_fields, orders, founders, order_status_history, conversations, messages, documents, required_documents, addons, partner_countries, otp_codes
 
 3 roles: client, partner, admin (with RLS policies)
 
 ## Status
 | Component | Status |
 |-----------|--------|
-| Auth (login/register/forgot/reset-password) | Done |
-| Email via Resend (signup confirm + password reset) | Done |
+| Auth (OTP login/register, no passwords) | Done |
+| Email via Resend (OTP codes) | Done |
 | Order wizard (7 steps) | Done |
 | Order management + status pipeline | Done |
 | Messaging (realtime) | Done |
