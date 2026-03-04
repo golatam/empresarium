@@ -37,7 +37,7 @@ supabase/seed.sql          # 5 countries, 17 entity types, form fields
 - **JSONB for country-specific data** — `orders.form_data`, `founders.extra_data`
 - **Server Components for reads, Server Actions for mutations** — minimal client JS
 - **`as any` casts avoided** — removed by using untyped clients instead
-- **Custom OTP auth (no passwords)** — users sign in/register via 6-digit email codes. Flow: `sendOtp()` → stores hash in `otp_codes` → sends code via Resend → `verifyOtp*()` → verifies hash → `admin.generateLink(magiclink)` + `supabase.auth.verifyOtp(token_hash)` → real Supabase session with cookies. No password storage, no password reset flow.
+- **Custom OTP auth (no passwords)** — users sign in/register via 6-digit email codes. Two-step Route Handler flow: `sendOtp()` (Server Action) → stores hash in `otp_codes` → sends code via Resend → `POST /api/auth/session` (verifies OTP hash, generates magic link, returns `tokenHash`) → `GET /api/auth/session?token_hash=...` (full-page navigation, calls `verifyOtp`, sets cookies via redirect response) → dashboard. Register path also creates user + profile via `upsert`. No password storage, no password reset flow.
 - **RLS admin checks via `is_admin(auth.uid())`** — all admin RLS policies use a `SECURITY DEFINER` function instead of direct `SELECT FROM profiles` to avoid infinite recursion (see migration 00015)
 
 ## Database
