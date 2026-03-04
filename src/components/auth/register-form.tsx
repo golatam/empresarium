@@ -14,6 +14,7 @@ import {
   type VerifyCodeFormData,
 } from '@/lib/validations/auth';
 import { sendOtp, verifyOtpAndSignUp } from '@/lib/actions/auth';
+import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -113,7 +114,7 @@ export function RegisterForm() {
         locale,
       });
 
-      if (result.error) {
+      if ('error' in result) {
         if (result.error === 'INVALID_CODE') {
           setError(t('invalidCode'));
         } else if (result.error === 'CODE_EXPIRED') {
@@ -123,6 +124,18 @@ export function RegisterForm() {
         } else {
           setError(result.error);
         }
+        return;
+      }
+
+      // Create session CLIENT-SIDE using the token hash from the server
+      const supabase = createClient();
+      const { error: sessionError } = await supabase.auth.verifyOtp({
+        token_hash: result.tokenHash,
+        type: 'magiclink',
+      });
+
+      if (sessionError) {
+        setError(t('errorGeneric'));
         return;
       }
 

@@ -15,6 +15,7 @@ import {
   type VerifyCodeFormData,
 } from '@/lib/validations/auth';
 import { sendOtp, verifyOtpAndSignIn } from '@/lib/actions/auth';
+import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -104,7 +105,7 @@ export function LoginForm() {
     try {
       const result = await verifyOtpAndSignIn(email, data.code);
 
-      if (result.error) {
+      if ('error' in result) {
         if (result.error === 'INVALID_CODE') {
           setError(t('invalidCode'));
         } else if (result.error === 'CODE_EXPIRED') {
@@ -117,9 +118,21 @@ export function LoginForm() {
         return;
       }
 
-      // Full page navigation to ensure session cookies are sent with the request.
-      // Using window.location instead of router.push to avoid race conditions
-      // with router.refresh() that can cancel the navigation.
+      // Create session CLIENT-SIDE using the token hash from the server.
+      // Server Actions can't reliably set cookies in Next.js 14 (cookies().set()
+      // silently fails), so we use the browser Supabase client which sets
+      // cookies via document.cookie — this always works.
+      const supabase = createClient();
+      const { error: sessionError } = await supabase.auth.verifyOtp({
+        token_hash: result.tokenHash,
+        type: 'magiclink',
+      });
+
+      if (sessionError) {
+        setError(t('errorGeneric'));
+        return;
+      }
+
       window.location.href = redirectTo;
     } catch {
       setError(t('errorGeneric'));
