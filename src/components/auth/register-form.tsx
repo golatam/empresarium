@@ -127,11 +127,11 @@ export function RegisterForm() {
         return;
       }
 
-      // Create session CLIENT-SIDE using the token hash from the server
+      // Set session CLIENT-SIDE using tokens from the server
       const supabase = createClient();
-      const { error: sessionError } = await supabase.auth.verifyOtp({
-        token_hash: result.tokenHash,
-        type: 'magiclink',
+      const { error: sessionError } = await supabase.auth.setSession({
+        access_token: result.accessToken,
+        refresh_token: result.refreshToken,
       });
 
       if (sessionError) {

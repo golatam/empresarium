@@ -118,14 +118,13 @@ export function LoginForm() {
         return;
       }
 
-      // Create session CLIENT-SIDE using the token hash from the server.
-      // Server Actions can't reliably set cookies in Next.js 14 (cookies().set()
-      // silently fails), so we use the browser Supabase client which sets
-      // cookies via document.cookie — this always works.
+      // Set session CLIENT-SIDE using tokens from the server.
+      // Server Actions can't persist cookies in Next.js 14, so we pass
+      // the tokens and let the browser Supabase client set them via document.cookie.
       const supabase = createClient();
-      const { error: sessionError } = await supabase.auth.verifyOtp({
-        token_hash: result.tokenHash,
-        type: 'magiclink',
+      const { error: sessionError } = await supabase.auth.setSession({
+        access_token: result.accessToken,
+        refresh_token: result.refreshToken,
       });
 
       if (sessionError) {

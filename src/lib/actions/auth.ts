@@ -3,6 +3,7 @@
 import crypto from 'crypto';
 import { redirect } from 'next/navigation';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { createClient } from '@/lib/supabase/server';
 import { sendOtpEmail } from '@/lib/email';
 
 function hashCode(code: string, email: string): string {
@@ -112,15 +113,16 @@ async function verifyOtpCode(email: string, code: string) {
 }
 
 /**
- * Generate a magic link token hash for client-side session creation.
+ * Create a Supabase session for the given email and return the tokens.
  *
- * We return the token_hash instead of creating the session server-side because
- * cookies().set() silently fails in Next.js 14 Server Actions — the Set-Cookie
- * headers never reach the browser. The client-side Supabase client can then
- * call verifyOtp with this hash, which sets cookies via document.cookie.
+ * Flow: admin.generateLink() → server supabase.verifyOtp() → extract tokens.
+ * We return access_token + refresh_token instead of relying on cookies().set()
+ * because it silently fails in Next.js 14 Server Actions. The client then
+ * calls setSession() on the browser Supabase client to persist cookies.
  */
-async function generateTokenHash(email: string): Promise<{ tokenHash?: string; error?: string }> {
+async function createSessionTokens(email: string): Promise<{ error: string } | { accessToken: string; refreshToken: string }> {
   const admin = createAdminClient();
+  const supabase = await createClient();
 
   const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
     type: 'magiclink',
@@ -134,26 +136,40 @@ async function generateTokenHash(email: string): Promise<{ tokenHash?: string; e
 
   const tokenHash = linkData.properties?.hashed_token;
   if (!tokenHash) {
-    console.error('[auth] generateLink returned no hashed_token');
+    console.error('[auth] no hashed_token in generateLink response');
     return { error: 'Failed to create session' };
   }
 
-  return { tokenHash };
+  // Verify server-side — creates session in memory (cookies won't persist, but that's OK)
+  const { data: verifyData, error: verifyError } = await supabase.auth.verifyOtp({
+    token_hash: tokenHash,
+    type: 'magiclink',
+  });
+
+  if (verifyError || !verifyData.session) {
+    console.error('[auth] verifyOtp failed:', verifyError?.message);
+    return { error: 'Failed to create session' };
+  }
+
+  // Return raw tokens for client-side setSession()
+  return {
+    accessToken: verifyData.session.access_token,
+    refreshToken: verifyData.session.refresh_token,
+  };
 }
 
-export async function verifyOtpAndSignIn(email: string, code: string): Promise<{ error: string } | { success: true; tokenHash: string }> {
+export async function verifyOtpAndSignIn(email: string, code: string): Promise<{ error: string } | { success: true; accessToken: string; refreshToken: string }> {
   const verification = await verifyOtpCode(email, code);
   if ('error' in verification) {
     return { error: verification.error! };
   }
 
-  // Return token hash for client-side session creation
-  const result = await generateTokenHash(email);
-  if (result.error) {
+  const result = await createSessionTokens(email);
+  if ('error' in result) {
     return { error: result.error };
   }
 
-  return { success: true, tokenHash: result.tokenHash! };
+  return { success: true, accessToken: result.accessToken, refreshToken: result.refreshToken };
 }
 
 export async function verifyOtpAndSignUp(data: {
@@ -162,7 +178,7 @@ export async function verifyOtpAndSignUp(data: {
   fullName: string;
   role: 'client' | 'partner';
   locale: string;
-}): Promise<{ error: string } | { success: true; tokenHash: string }> {
+}): Promise<{ error: string } | { success: true; accessToken: string; refreshToken: string }> {
   const verification = await verifyOtpCode(data.email, data.code);
   if ('error' in verification) {
     return { error: verification.error! };
@@ -197,17 +213,15 @@ export async function verifyOtpAndSignUp(data: {
       .eq('id', userData.user.id);
   }
 
-  // Return token hash for client-side session creation
-  const result = await generateTokenHash(normalizedEmail);
-  if (result.error) {
+  const result = await createSessionTokens(normalizedEmail);
+  if ('error' in result) {
     return { error: result.error };
   }
 
-  return { success: true, tokenHash: result.tokenHash! };
+  return { success: true, accessToken: result.accessToken, refreshToken: result.refreshToken };
 }
 
 export async function signOut() {
-  const { createClient } = await import('@/lib/supabase/server');
   const supabase = await createClient();
   await supabase.auth.signOut();
   redirect('/');
