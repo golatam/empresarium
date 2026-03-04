@@ -87,8 +87,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: createError.message }, { status: 400 });
     }
 
-    if (role === 'partner' && userData.user) {
-      await admin.from('profiles').update({ role: 'partner' }).eq('id', userData.user.id);
+    // Ensure profile exists (trigger may not fire for admin-created users)
+    if (userData.user) {
+      await admin.from('profiles').upsert({
+        id: userData.user.id,
+        full_name: fullName || '',
+        role: role === 'partner' ? 'partner' : 'client',
+        preferred_locale: locale || 'en',
+      }, { onConflict: 'id' });
     }
   }
 
@@ -159,10 +165,14 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(`${baseUrl}/en/login`);
   }
 
-  console.log('[auth/session] GET verifyOtp success — cookies to set:', cookiesToSet.length);
+  console.log('[auth/session] GET verifyOtp success — cookies to set:', cookiesToSet.length,
+    '| names:', cookiesToSet.map(c => c.name),
+    '| options:', cookiesToSet.map(c => ({ path: c.options.path, httpOnly: c.options.httpOnly, secure: c.options.secure, sameSite: c.options.sameSite })));
 
   // Build redirect response with Set-Cookie headers
-  const response = NextResponse.redirect(`${baseUrl}${redirectTo}`);
+  const redirectUrl = `${baseUrl}${redirectTo}`;
+  console.log('[auth/session] GET redirecting to:', redirectUrl);
+  const response = NextResponse.redirect(redirectUrl);
   for (const { name, value, options } of cookiesToSet) {
     response.cookies.set(name, value, options as Record<string, unknown>);
   }
