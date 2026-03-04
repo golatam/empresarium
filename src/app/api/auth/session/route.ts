@@ -115,6 +115,25 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Failed to create session' }, { status: 500 });
   }
 
+  // Ensure profile exists (handles users created outside register flow or trigger failures)
+  if (linkData.user) {
+    const { data: existingProfile } = await admin
+      .from('profiles')
+      .select('id')
+      .eq('id', linkData.user.id)
+      .single();
+
+    if (!existingProfile) {
+      console.log('[auth/session] POST creating missing profile for', normalizedEmail);
+      await admin.from('profiles').upsert({
+        id: linkData.user.id,
+        full_name: linkData.user.user_metadata?.full_name || '',
+        role: 'client',
+        preferred_locale: linkData.user.user_metadata?.preferred_locale || 'en',
+      }, { onConflict: 'id' });
+    }
+  }
+
   console.log('[auth/session] POST success — tokenHash generated for', normalizedEmail);
   return NextResponse.json({ tokenHash });
 }
