@@ -102,8 +102,7 @@ export function LoginForm() {
     setError(null);
 
     try {
-      // Use Route Handler instead of Server Action — Route Handlers can set
-      // cookies reliably via Set-Cookie headers (Server Actions cannot in Next.js 14).
+      // Step 1: Verify OTP and get a one-time token hash
       const res = await fetch('/api/auth/session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -125,7 +124,9 @@ export function LoginForm() {
         return;
       }
 
-      window.location.href = redirectTo;
+      // Step 2: Navigate to GET endpoint which sets cookies via redirect.
+      // Full-page navigation ensures Set-Cookie headers are processed reliably.
+      window.location.href = `/api/auth/session?token_hash=${encodeURIComponent(result.tokenHash)}&redirect=${encodeURIComponent(redirectTo)}`;
     } catch {
       setError(t('errorGeneric'));
     } finally {

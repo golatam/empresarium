@@ -7,11 +7,16 @@ function hashCode(code: string, email: string): string {
   return crypto.createHash('sha256').update(code + email.toLowerCase()).digest('hex');
 }
 
+function getBaseUrl(): string {
+  return process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+}
+
 /**
  * POST /api/auth/session
  *
- * Verifies custom OTP, creates Supabase session, and returns Set-Cookie headers.
- * Route Handlers can set cookies reliably (unlike Server Actions in Next.js 14).
+ * Step 1: Verifies custom OTP code and generates a one-time token hash.
+ * Does NOT create a session or set cookies (fetch responses can't reliably
+ * set cookies in Next.js 14). Returns { tokenHash } for step 2.
  *
  * Body: { email, code, action: 'login' | 'register', fullName?, role?, locale? }
  */
@@ -20,7 +25,6 @@ export async function POST(request: NextRequest) {
   const { email, code, action } = body;
   const normalizedEmail = email.toLowerCase().trim();
 
-  // Admin client for DB operations and magic link generation
   const admin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -88,21 +92,43 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // --- Generate magic link and create session ---
+  // --- Generate magic link token (but don't create session yet) ---
   const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
     type: 'magiclink',
     email: normalizedEmail,
   });
 
   if (linkError || !linkData) {
-    console.error('[auth/session] generateLink failed:', linkError?.message);
+    console.error('[auth/session] POST generateLink failed:', linkError?.message);
     return NextResponse.json({ error: 'Failed to create session' }, { status: 500 });
   }
 
   const tokenHash = linkData.properties?.hashed_token;
   if (!tokenHash) {
-    console.error('[auth/session] no hashed_token');
+    console.error('[auth/session] POST no hashed_token in generateLink response');
     return NextResponse.json({ error: 'Failed to create session' }, { status: 500 });
+  }
+
+  console.log('[auth/session] POST success — tokenHash generated for', normalizedEmail);
+  return NextResponse.json({ tokenHash });
+}
+
+/**
+ * GET /api/auth/session?token_hash=...&redirect=...
+ *
+ * Step 2: Exchanges the token hash for a Supabase session and sets cookies
+ * via a redirect response. This is a full-page navigation (not fetch), so
+ * Set-Cookie headers are reliably processed by the browser.
+ */
+export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+  const tokenHash = searchParams.get('token_hash');
+  const redirectTo = searchParams.get('redirect') || '/en/dashboard';
+  const baseUrl = getBaseUrl();
+
+  if (!tokenHash) {
+    console.error('[auth/session] GET missing token_hash');
+    return NextResponse.redirect(`${baseUrl}/en/login`);
   }
 
   // Create SSR client that captures cookie mutations
@@ -123,18 +149,20 @@ export async function POST(request: NextRequest) {
     }
   );
 
-  const { error: verifyError } = await supabase.auth.verifyOtp({
+  const { data, error: verifyError } = await supabase.auth.verifyOtp({
     token_hash: tokenHash,
     type: 'magiclink',
   });
 
-  if (verifyError) {
-    console.error('[auth/session] verifyOtp failed:', verifyError.message);
-    return NextResponse.json({ error: 'Failed to create session' }, { status: 500 });
+  if (verifyError || !data.session) {
+    console.error('[auth/session] GET verifyOtp failed:', verifyError?.message, '| session:', !!data?.session);
+    return NextResponse.redirect(`${baseUrl}/en/login`);
   }
 
-  // Build response with Set-Cookie headers
-  const response = NextResponse.json({ success: true });
+  console.log('[auth/session] GET verifyOtp success — cookies to set:', cookiesToSet.length);
+
+  // Build redirect response with Set-Cookie headers
+  const response = NextResponse.redirect(`${baseUrl}${redirectTo}`);
   for (const { name, value, options } of cookiesToSet) {
     response.cookies.set(name, value, options as Record<string, unknown>);
   }
