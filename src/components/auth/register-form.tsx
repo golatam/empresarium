@@ -13,8 +13,7 @@ import {
   type RegisterFormData,
   type VerifyCodeFormData,
 } from '@/lib/validations/auth';
-import { sendOtp, verifyOtpAndSignUp } from '@/lib/actions/auth';
-import { createClient } from '@/lib/supabase/client';
+import { sendOtp } from '@/lib/actions/auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -106,15 +105,22 @@ export function RegisterForm() {
     setError(null);
 
     try {
-      const result = await verifyOtpAndSignUp({
-        email: registrationData.email,
-        code: data.code,
-        fullName: registrationData.fullName,
-        role: registrationData.role,
-        locale,
+      const res = await fetch('/api/auth/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: registrationData.email,
+          code: data.code,
+          action: 'register',
+          fullName: registrationData.fullName,
+          role: registrationData.role,
+          locale,
+        }),
       });
 
-      if ('error' in result) {
+      const result = await res.json();
+
+      if (!res.ok || result.error) {
         if (result.error === 'INVALID_CODE') {
           setError(t('invalidCode'));
         } else if (result.error === 'CODE_EXPIRED') {
@@ -122,20 +128,8 @@ export function RegisterForm() {
         } else if (result.error === 'TOO_MANY_ATTEMPTS') {
           setError(t('tooManyAttempts'));
         } else {
-          setError(result.error);
+          setError(result.error || t('errorGeneric'));
         }
-        return;
-      }
-
-      // Set session CLIENT-SIDE using tokens from the server
-      const supabase = createClient();
-      const { error: sessionError } = await supabase.auth.setSession({
-        access_token: result.accessToken,
-        refresh_token: result.refreshToken,
-      });
-
-      if (sessionError) {
-        setError(t('errorGeneric'));
         return;
       }
 

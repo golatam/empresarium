@@ -14,8 +14,7 @@ import {
   type SendOtpFormData,
   type VerifyCodeFormData,
 } from '@/lib/validations/auth';
-import { sendOtp, verifyOtpAndSignIn } from '@/lib/actions/auth';
-import { createClient } from '@/lib/supabase/client';
+import { sendOtp } from '@/lib/actions/auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -103,9 +102,17 @@ export function LoginForm() {
     setError(null);
 
     try {
-      const result = await verifyOtpAndSignIn(email, data.code);
+      // Use Route Handler instead of Server Action — Route Handlers can set
+      // cookies reliably via Set-Cookie headers (Server Actions cannot in Next.js 14).
+      const res = await fetch('/api/auth/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, code: data.code, action: 'login' }),
+      });
 
-      if ('error' in result) {
+      const result = await res.json();
+
+      if (!res.ok || result.error) {
         if (result.error === 'INVALID_CODE') {
           setError(t('invalidCode'));
         } else if (result.error === 'CODE_EXPIRED') {
@@ -113,22 +120,8 @@ export function LoginForm() {
         } else if (result.error === 'TOO_MANY_ATTEMPTS') {
           setError(t('tooManyAttempts'));
         } else {
-          setError(result.error);
+          setError(result.error || t('errorGeneric'));
         }
-        return;
-      }
-
-      // Set session CLIENT-SIDE using tokens from the server.
-      // Server Actions can't persist cookies in Next.js 14, so we pass
-      // the tokens and let the browser Supabase client set them via document.cookie.
-      const supabase = createClient();
-      const { error: sessionError } = await supabase.auth.setSession({
-        access_token: result.accessToken,
-        refresh_token: result.refreshToken,
-      });
-
-      if (sessionError) {
-        setError(t('errorGeneric'));
         return;
       }
 
